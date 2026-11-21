@@ -1,0 +1,60 @@
+# Deploys the app to a Hugging Face Space on every push to main.
+# Setup (one time):
+#   1. Create a Docker Space on huggingface.co.
+#   2. Add a repository secret HF_TOKEN (a Hugging Face token with write access).
+#   3. Add a repository variable HF_SPACE, e.g. "your-username/ceylon-hr-payroll".
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: huggingface-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check setup
+        id: setup
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
+            echo "::warning::Skipping deploy: add the HF_TOKEN secret and HF_SPACE variable in the repo settings."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Space contents
+        if: steps.setup.outputs.ready == 'true'
+        run: |
+          mkdir ../space
+          # Screenshots and docs stay on GitHub (Spaces reject binary files without Xet/LFS).
+          rsync -a ./ ../space/ \
+            --exclude .git --exclude .github --exclude docs --exclude tests \
+            --exclude deploy --exclude Dockerfile --exclude render.yaml --exclude README.md
+          cp deploy/huggingface/Dockerfile ../space/Dockerfile
+          cp deploy/huggingface/README.md ../space/README.md
+
+      - name: Push to Hugging Face
+        if: steps.setup.outputs.ready == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          cd ../space
+          git init -q -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7} from GitHub"
+          git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" main
+          echo "Deployed to https://huggingface.co/spaces/${HF_SPACE}"

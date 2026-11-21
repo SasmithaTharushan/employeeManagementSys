@@ -192,6 +192,16 @@ return ['db' => ['driver' => 'mysql', 'user' => 'root', 'pass' => 'secret']];
 
 ## 🚀 Deploy your own
 
+### Hugging Face Spaces (free, no card, auto-deploys from GitHub)
+1. On [huggingface.co](https://huggingface.co), create a **Space** with the **Docker** SDK (Blank template).
+2. Create an access token with **Write** permission.
+3. In this GitHub repo, go to **Settings → Secrets and variables → Actions** and add:
+   - a **secret** `HF_TOKEN` containing the token
+   - a **variable** `HF_SPACE` like `your-username/ceylon-hr-payroll`
+4. Push to `main` (or run the **Deploy to Hugging Face Spaces** workflow by hand).
+
+The workflow in `.github/workflows/deploy-huggingface.yml` builds the Space from `deploy/huggingface/`. It runs PHP's built-in server on port 7860 with SQLite and demo data, and `router.php` blocks the database file and internal folders.
+
 ### Free PHP hosting with MySQL (e.g. InfinityFree), no card needed
 1. Create a free hosting account and a MySQL database in the control panel.
 2. Upload the app files into `htdocs` (you don't need `tests/`, `docs/`, `Dockerfile` or `render.yaml`).

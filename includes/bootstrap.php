@@ -12,9 +12,14 @@ $GLOBALS['config'] = $config;
 date_default_timezone_set('Asia/Colombo');
 
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
+    // "None" lets the login work when the app is embedded in an iframe (e.g. a Hugging Face
+    // Space page). Browsers only accept SameSite=None cookies over HTTPS, so it implies Secure.
+    // Forms are still protected by CSRF tokens.
+    $sameSite = getenv('SESSION_SAMESITE') === 'None' ? 'None' : 'Lax';
     session_start([
         'cookie_httponly' => true,
-        'cookie_samesite' => 'Lax',
+        'cookie_samesite' => $sameSite,
+        'cookie_secure'   => $sameSite === 'None' || (($_SERVER['HTTPS'] ?? '') === 'on'),
         'use_strict_mode' => true,
     ]);
 }
