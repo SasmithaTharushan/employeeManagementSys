@@ -1,0 +1,8 @@
+config.local.php
+database/*.sqlite
+.env
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/

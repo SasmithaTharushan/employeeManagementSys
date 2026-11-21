@@ -1,69 +1,66 @@
-<?php 
-require_once "include/header.php";
-?>
+<?php
+require_once __DIR__ . '/../includes/bootstrap.php';
+$me = require_employee();
 
-<?php  
-// database connection
-require_once "../connection.php";
-
-$sql_command = "SELECT * FROM employee WHERE email = '$_SESSION[email_emp]' ";
-$result = mysqli_query($conn , $sql_command);
-
-if (mysqli_num_rows($result) > 0) {
-    while ($rows = mysqli_fetch_assoc($result)) {
-        $name = ucwords($rows["name"]);
-        $gender = ucwords($rows["gender"]);
-        $dob = $rows["dob"];
-        $salary = $rows["salary"];   
-        $dp = $rows["dp"];     
-        $id = $rows["id"];
-    }
-
-    if (empty($gender)) {
-        $gender = "Not Defined";
-    } else {
-        $dob = date('jS F Y', strtotime($dob));
-    }
-
-    if (empty($dob)) {
-        $dob = "Not Defined";
-        $age = "Not Defined";
-    } else {
-        $date1 = date_create($dob);
-        $date2 = date_create("now");
-        $diff = date_diff($date1, $date2);
-        $age = $diff->format("%y Years"); 
+$error = '';
+if (is_post()) {
+    verify_csrf();
+    $error = change_password('employees', (int) $me['id'], (string) ($_POST['current'] ?? ''), (string) ($_POST['new'] ?? ''), (string) ($_POST['confirm'] ?? '')) ?? '';
+    if (!$error) {
+        flash('success', 'Your password was changed.');
+        redirect('employee/profile.php');
     }
 }
-?>
 
-<div class="container">
-    <div class="row">
-        <div class="col-4">
-        </div>
-        <div class="col-12 col-lg-6 col-md-6">
-            <div class="card shadow" style="width: 22rem;">
-                <img src="upload/<?php if (!empty($dp)) { echo $dp; } else { echo "1.jpg"; } ?>" class="rounded img-fluid card-img-top" style="height: 300px;" alt="...">
-                <div class="card-body">
-                    <h2 class="text-center mb-4"><?php echo $name; ?></h2>
-                    <p class="card-text">Email: <?php echo $_SESSION["email_emp"] ?> </p>
-                    <p class="card-text">Employee Id: <?php echo $id ?> </p>
-                    <p class="card-text">Gender: <?php echo $gender ?> </p>
-                    <p class="card-text">Age: <?php echo $age; ?></p>
-                    <p class="card-text">Date of Birth: <?php echo $dob; ?> </p>
-                    <p class="card-text">Salary: <?php echo $salary . " Rs."; ?> </p>
-                    
-                    <p class="text-center">
-                        <a href="edit-profile.php" class="btn" style="background-color: #6f42c1; color: #ffffff; border: none;">Edit Profile</a>
-                        <a href="change-password.php" class="btn" style="background-color: #6f42c1; color: #ffffff; border: none;">Change Password</a>
-                        <a href="profile-photo.php" class="mt-2 btn" style="background-color: #6f42c1; color: #ffffff; border: none;">Change Profile Photo</a>
-                    </p>
+$details = [
+    'Employee no' => $me['emp_no'],
+    'Email' => $me['email'],
+    'NIC' => $me['nic'],
+    'EPF member no' => $me['epf_no'],
+    'Date of birth' => $me['dob'] ? fmt_date($me['dob']) : null,
+    'Gender' => $me['gender'],
+    'Phone' => $me['phone'],
+    'Department' => $me['department'],
+    'Designation' => $me['designation'],
+    'Joined' => $me['join_date'] ? fmt_date($me['join_date']) : null,
+    'Bank' => trim(($me['bank_name'] ?? '') . ' ' . ($me['bank_account'] ?? '')),
+];
+
+render_header('My profile', 'employee', 'profile', 'Ask HR if any of these details need to change.');
+?>
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card-app">
+            <div class="card-body-app d-flex align-items-center gap-3 border-bottom">
+                <span class="avatar avatar-lg"><?= e(initials($me['name'])) ?></span>
+                <div>
+                    <h2 class="h4 fw-bold mb-0"><?= e($me['name']) ?></h2>
+                    <div class="text-body-secondary"><?= e($me['designation'] ?: 'Employee') ?></div>
                 </div>
             </div>
+            <dl class="row card-body-app m-0">
+                <?php foreach ($details as $label => $value): ?>
+                    <dt class="col-sm-4 text-body-secondary fw-semibold"><?= e($label) ?></dt>
+                    <dd class="col-sm-8"><?= e($value ?: '—') ?></dd>
+                <?php endforeach; ?>
+            </dl>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card-app">
+            <div class="card-header-app"><h2>Change password</h2></div>
+            <form method="post" class="card-body-app">
+                <?= csrf_field() ?>
+                <?php if ($error): ?><div class="alert alert-danger py-2"><?= e($error) ?></div><?php endif; ?>
+                <label class="form-label">Current password</label>
+                <input class="form-control mb-3" type="password" name="current" autocomplete="current-password" required>
+                <label class="form-label">New password</label>
+                <input class="form-control mb-3" type="password" name="new" minlength="8" autocomplete="new-password" required>
+                <label class="form-label">Confirm new password</label>
+                <input class="form-control mb-3" type="password" name="confirm" minlength="8" autocomplete="new-password" required>
+                <button class="btn btn-primary">Change password</button>
+            </form>
         </div>
     </div>
 </div>
-
-<?php 
-require_once "include/footer.php";
-?>
+<?php render_footer(); ?>
