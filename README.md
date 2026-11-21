@@ -29,9 +29,7 @@ Most employee management systems stop at "add, edit, delete". Running payroll in
 
 ## 🔗 Live demo
 
-> **https://ceylon-hr-payroll.onrender.com**
->
-> Hosted on Render's free plan. If it has been idle, the first load can take up to a minute while the server wakes up. Demo data resets on every restart.
+> 🚧 **Live link coming soon.** Until then, run it locally in under a minute with SQLite ([see below](#-run-it-locally)).
 
 | Role | Email | Password |
 |---|---|---|
@@ -194,15 +192,23 @@ return ['db' => ['driver' => 'mysql', 'user' => 'root', 'pass' => 'secret']];
 
 ## 🚀 Deploy your own
 
+### Free PHP hosting with MySQL (e.g. InfinityFree), no card needed
+1. Create a free hosting account and a MySQL database in the control panel.
+2. Upload the app files into `htdocs` (you don't need `tests/`, `docs/`, `Dockerfile` or `render.yaml`).
+3. Create `config.local.php` next to `index.php` with your database details:
+   ```php
+   <?php return ['db' => [
+       'driver' => 'mysql', 'host' => 'sqlXXX.infinityfree.com',
+       'name' => 'if0_XXXXXXXX_payroll', 'user' => 'if0_XXXXXXXX', 'pass' => 'your-password',
+   ]];
+   ```
+4. Open `https://your-site/install.php`, click **Install**, then delete `install.php`.
+
+### Docker (Render, Railway, Fly.io…)
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/SasmithaTharushan/employeeManagementSys)
 
-The repo has a `Dockerfile` and a `render.yaml` blueprint, so it deploys to **Render's free plan** with no database setup (SQLite + demo data):
-
-1. Sign in to [render.com](https://render.com) with GitHub.
-2. **New → Blueprint** (or click the button above) and pick this repository.
-3. Click **Apply**. The first build takes a few minutes.
-
-For a permanent installation with data that persists, use any PHP host with MySQL (e.g. InfinityFree): upload the files, add your database details to `config.local.php`, open `/install.php`, then delete it.
+The `Dockerfile` runs PHP 8.3 + Apache with SQLite and demo data, so there's no database to set up. The `render.yaml` blueprint deploys it to Render's free plan in one click. Render asks for a card to verify your identity, even on the free plan. Free instances sleep when idle, and demo data resets on restart.
 
 > GitHub Pages and Vercel only host static sites and serverless functions, so they can't run this PHP + database app.
 
