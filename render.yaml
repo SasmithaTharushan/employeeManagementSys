@@ -1,0 +1,15 @@
+# Render Blueprint: one-click deploy of the demo (free plan, SQLite, demo data).
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: ceylon-hr-payroll
+    runtime: docker
+    plan: free
+    branch: main
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DB_DRIVER
+        value: sqlite
+      - key: DEMO_MODE
+        value: "1"

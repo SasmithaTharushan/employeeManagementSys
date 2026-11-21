@@ -1,66 +1,59 @@
-<?php 
+<?php
+require_once __DIR__ . '/../includes/bootstrap.php';
+$me = require_admin();
 
-require_once "include/header.php";
-?>
- <?php  
-    
-
-
-    // databaseconnection
-    require_once "../connection.php";
-
-    $sql_command = "SELECT * FROM admin WHERE email = '$_SESSION[email]' ";
-    $result = mysqli_query($conn , $sql_command);
-
-    if( mysqli_num_rows($result) > 0){
-       while( $rows = mysqli_fetch_assoc($result) ){
-           $name = ucwords($rows["name"]);
-           $gender = ucwords($rows["gender"]);
-           $dob= $rows["dob"];
-            $dp = $rows["dp"];
-       }
-
-       if( empty($gender)){
-           $gender = "Not Defined";
-       }
-
-       if( empty($dob)){
-            $dob = "Not Defined";
-            $age = "Not Defined";
+$error = '';
+if (is_post()) {
+    verify_csrf();
+    if (input('action') === 'details') {
+        $name = input('name');
+        if ($name === '') {
+            $error = 'Enter your name.';
+        } else {
+            update('admins', ['name' => $name], (int) $me['id']);
+            flash('success', 'Your name was updated.');
+            redirect('admin/profile.php');
         }
+    } else {
+        $error = change_password('admins', (int) $me['id'], (string) ($_POST['current'] ?? ''), (string) ($_POST['new'] ?? ''), (string) ($_POST['confirm'] ?? '')) ?? '';
+        if (!$error) {
+            flash('success', 'Your password was changed.');
+            redirect('admin/profile.php');
+        }
+    }
 }
- ?>
 
-
-<div class=container>
-    <div class="row ">
-        <div class="col-4 ">
+render_header('My account', 'admin', 'profile');
+?>
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card-app">
+            <div class="card-header-app"><h2>Details</h2></div>
+            <form method="post" class="card-body-app">
+                <?= csrf_field() ?>
+                <label class="form-label">Name</label>
+                <input class="form-control mb-3" name="name" value="<?= e($me['name']) ?>" required>
+                <label class="form-label">Email</label>
+                <input class="form-control mb-3" value="<?= e($me['email']) ?>" disabled>
+                <button class="btn btn-primary" name="action" value="details">Save</button>
+            </form>
         </div>
-        <div class="col-12 col-lg-6 col-md-6">
-            <div class="card shadow" style="width: 20rem;">
-            <img src="upload/<?php if(!empty($dp)){ echo $dp; }else{ echo "1.jpg"; } ?>" class="rounded img-fluid  card-img-top"  style="height: 300px "  alt="...">
-                <div class="card-body">
-                <h2 class="text-center mb-4"><?php echo $name; ?> </h2>
-                    <p class="card-text">Email: <?php echo $_SESSION["email"] ?> </p>
-                    <p class="card-text">Gender: <?php echo $gender ?> </p>
-                    <p class="card-text">Date of Birth: <?php echo $dob ?> </p>
-                    <p class="card-text">Age: <?php if( $dob != "Not Defined"){  
-                                                    $date1=date_create($dob);
-                                                    $date2=date_create("now");
-                                                    $diff=date_diff($date1,$date2);
-                                                    echo $diff->format("%y Years"); }?> 
-                    </p>
-                    
-                    <p class="text-center">
-                    <a href="edit-profile.php" class="btn btn-outline-primary">Edit Profile</a>
-                    <a href="change-password.php" class="btn btn-outline-primary">Change Password</a>
-                    <a href="profile-photo.php" class="mt-2 btn btn-outline-primary">Change profile photo</a>
-                    </p>
-                </div>
-            </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card-app">
+            <div class="card-header-app"><h2>Change password</h2></div>
+            <form method="post" class="card-body-app">
+                <?= csrf_field() ?>
+                <?php if ($error): ?><div class="alert alert-danger py-2"><?= e($error) ?></div><?php endif; ?>
+                <label class="form-label">Current password</label>
+                <input class="form-control mb-3" type="password" name="current" autocomplete="current-password" required>
+                <label class="form-label">New password</label>
+                <input class="form-control mb-3" type="password" name="new" minlength="8" autocomplete="new-password" required>
+                <label class="form-label">Confirm new password</label>
+                <input class="form-control mb-3" type="password" name="confirm" minlength="8" autocomplete="new-password" required>
+                <button class="btn btn-primary" name="action" value="password">Change password</button>
+            </form>
         </div>
     </div>
 </div>
-<?php 
-require_once "include/footer.php";
-?>
+<?php render_footer(); ?>

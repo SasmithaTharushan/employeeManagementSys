@@ -1,143 +1,125 @@
-<?php 
-require_once "include/header.php";
-?>
 <?php
+require_once __DIR__ . '/../includes/bootstrap.php';
+$me = require_employee();
+$id = (int) $me['id'];
 
-// database connection
-require_once "../connection.php";
-
-$i = 1;
-
-// applied leaves--------------------------------------------------------------------------------------------
-$total_accepted = $total_pending = $total_canceled = $total_applied = 0;
-$leave = "SELECT * FROM emp_leave WHERE email = '$_SESSION[email_emp]' ";
-$result = mysqli_query($conn , $leave);
-
-if( mysqli_num_rows($result) > 0 ){
-    $total_applied = mysqli_num_rows($result);
-    while( $leave_info = mysqli_fetch_assoc($result) ){
-        $status = $leave_info["status"];
-        if( $status == "pending" ){
-            $total_pending += 1;
-        }elseif( $status == "Accepted" ){
-            $total_accepted += 1;
-        }elseif( $status = "Canceled"){
-            $total_canceled += 1;
-        }
+$slips = all(
+    "SELECT p.*, r.period FROM payslips p JOIN payroll_runs r ON r.id = p.run_id
+      WHERE p.employee_id = ? AND r.status = 'finalized' ORDER BY r.period DESC",
+    [$id]
+);
+$latest = $slips[0] ?? null;
+$year = date('Y');
+$ytdNet = 0.0;
+$epfTotal = 0.0;
+foreach ($slips as $s) {
+    if (str_starts_with($s['period'], $year)) {
+        $ytdNet += (float) $s['net_pay'];
     }
-}else{
-    $total_accepted = $total_pending = $total_canceled = $total_applied = 0;
+    $epfTotal += (float) $s['epf_employee'] + (float) $s['epf_employer'];
 }
 
-// leave status--------------------------------------------------------------------------------------------------------------
-$currentDay = date( 'Y-m-d', strtotime("today") );
+$entitlements = payroll_rates()['leave_entitlements'];
+$used = leave_used($id, (int) $year);
+$upcoming = all(
+    "SELECT * FROM leaves WHERE employee_id = ? AND end_date >= ? AND status IN ('approved', 'pending') ORDER BY start_date LIMIT 4",
+    [$id, date('Y-m-d')]
+);
 
-$last_leave_status = "No leave applied";
-$upcoming_leave_status = "";
+$chartSlips = array_reverse(array_slice($slips, 0, 6));
+$chart = [
+    'labels' => array_map(fn($s) => date('M', strtotime($s['period'] . '-01')), $chartSlips),
+    'net' => array_map(fn($s) => (float) $s['net_pay'], $chartSlips),
+    'deductions' => array_map(fn($s) => (float) $s['epf_employee'] + (float) $s['apit'] + (float) $s['other_deductions'], $chartSlips),
+];
 
-// for last leave status
-$check_leave = "SELECT * FROM emp_leave WHERE email = '$_SESSION[email_emp]' ";
-$s = mysqli_query($conn , $check_leave);
-if( mysqli_num_rows($s) > 0 ){
-    while( $info = mysqli_fetch_assoc($s) ){
-       $last_leave_status =  $info["status"] ;
-    }
-}
-
-// for next leave date
-$check_ = "SELECT * FROM emp_leave WHERE email = '$_SESSION[email_emp]' ORDER BY start_date ASC ";
-$e = mysqli_query($conn , $check_); 
-if( mysqli_num_rows($e) > 0 ){
-    while( $info = mysqli_fetch_assoc($e) ){
-        $date = $info["start_date"] ;
-        $last_leave =  $info["status"] ;
-       if ( $date > $currentDay && $last_leave == "Accepted" ){
-           $upcoming_leave_status = date('jS F', strtotime($date) ) ;
-           break;
-       }
-    }
-}
-
-// total employee--------------------------------------------------------------------------------------------
-$select_emp = "SELECT * FROM employee";
-$total_emp = mysqli_query($conn , $select_emp);
-
-// highest paid employee--------------------------------------------------------------------------
-$sql_highest_salary =  "SELECT * FROM employee ORDER BY salary DESC";
-$emp_ = mysqli_query($conn , $sql_highest_salary);
-
+render_header('Hi, ' . explode(' ', $me['name'])[0] . ' 👋', 'employee', 'dashboard', ($me['designation'] ?: 'Employee') . ($me['department'] ? ' · ' . $me['department'] : ''));
 ?>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><?= stat_tile('bi-wallet2', 'Last take-home', $latest ? money($latest['net_pay']) : '—', 'primary', $latest ? period_label($latest['period']) : 'No payslips yet') ?></div>
+    <div class="col-sm-6 col-xl-3"><?= stat_tile('bi-graph-up-arrow', "Net pay in $year", money($ytdNet), 'blue') ?></div>
+    <div class="col-sm-6 col-xl-3"><?= stat_tile('bi-piggy-bank', 'EPF credited', money($epfTotal), 'amber', 'Your 8% + employer 12%') ?></div>
+    <div class="col-sm-6 col-xl-3"><?= stat_tile('bi-calendar2-heart', 'Annual leave left', max(0, $entitlements['annual'] - $used['annual']) . ' days', 'rose', 'of ' . $entitlements['annual'] . " for $year") ?></div>
+</div>
 
-<div class="container" style="background-color: #f3e6ff; padding: 20px;">
-
-    <div class="row mt-5">
-        <div class="col-4">
-            <div class="card shadow" style="width: 18rem; border-color: #6f42c1; border-width: 2px;">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item text-center" style="background-color: #6f42c1; color: #ffffff;"> <b>Leave Status</b> </li>
-                    <li class="list-group-item">Upcoming Leave on :  <?php echo  $upcoming_leave_status ; ?>  </li>
-                    <li class="list-group-item">Last Leave's Status :  <?php echo ucwords($last_leave_status) ;  ?> </li>
-                </ul>
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card-app h-100">
+            <div class="card-header-app">
+                <h2>My pay over time</h2>
+                <a class="small" href="<?= e(url('employee/payslips.php')) ?>">All payslips →</a>
             </div>
-        </div>
-        <div class="col-4">
-            <div class="card shadow" style="width: 18rem; border-color: #6f42c1; border-width: 2px;">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item text-center" style="background-color: #6f42c1; color: #ffffff;"> <b>Applied leaves</b> </li>
-                    <li class="list-group-item">Total Accepted  : <?php echo $total_accepted;  ?> </li>
-                    <li class="list-group-item">Total Canceled  : <?php echo $total_canceled; ?> </li>
-                    <li class="list-group-item">Total Pending  : <?php echo $total_pending; ?> </li>
-                    <li class="list-group-item">Total Applied  : <?php echo $total_applied; ?> </li>
-                </ul>
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="card shadow" style="width: 18rem; border-color: #6f42c1; border-width: 2px;">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item text-center" style="background-color: #6f42c1; color: #ffffff;"> <b>Employees</b>  </li>
-                    <li class="list-group-item">Total Employees : <?php echo mysqli_num_rows($total_emp); ?></li>
-                    <li class="list-group-item text-center"><a href="view-employee.php" style="color: #6f42c1; text-decoration: none;"><b>View All Employees</b></a></li>
-                </ul>
+            <div class="card-body-app">
+                <?php if ($chartSlips): ?>
+                    <div class="chart-box"><canvas id="payChart"></canvas></div>
+                <?php else: ?>
+                    <div class="empty-state"><i class="bi bi-receipt"></i>Your payslips will appear here after payroll is finalized.</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-    
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="text-center my-3"> <h4 style="color: #6f42c1;">Employee Leadership Board</h4> </div>
-            <table class="table table-hover" style="border-collapse: collapse;">
-                <thead>
-                    <tr style="background-color: #6f42c1; color: #ffffff;">
-                        <th scope="col">S.No.</th>
-                        <th scope="col">Employee's Id</th>
-                        <th scope="col">Employee's Name</th>
-                        <th scope="col">Employee's Email</th>
-                        <th scope="col">Salary in Rs.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while( $emp_info = mysqli_fetch_assoc($emp_) ){
-                        $emp_id = $emp_info["id"];
-                        $emp_name = $emp_info["name"];
-                        $emp_email = $emp_info["email"];
-                        $emp_salary = $emp_info["salary"];
-                    ?>
-                    <tr>
-                        <th><?php echo "$i. "; ?></th>
-                        <th><?php echo $emp_id; ?></th>
-                        <td><?php echo $emp_name; ?></td>
-                        <td><?php echo $emp_email; ?></td>
-                        <td><?php echo $emp_salary; ?></td>
-                    </tr>
-                    <?php  
-                        $i++; 
-                    } ?>
-                </tbody>
-            </table>
+    <div class="col-xl-4 d-grid gap-3">
+        <div class="card-app">
+            <div class="card-header-app"><h2>Leave balance <?= e($year) ?></h2><a class="small" href="<?= e(url('employee/leave.php')) ?>">Apply →</a></div>
+            <div class="card-body-app">
+                <?php foreach ($entitlements as $type => $total): $left = max(0, $total - $used[$type]); ?>
+                    <div class="balance">
+                        <div class="balance-top"><span><?= e(leave_types()[$type]) ?></span><span class="fw-semibold"><?= $left ?> / <?= $total ?> left</span></div>
+                        <div class="progress" role="progressbar" aria-valuenow="<?= $left ?>" aria-valuemin="0" aria-valuemax="<?= $total ?>">
+                            <div class="progress-bar" style="width: <?= $total ? round($left / $total * 100) : 0 ?>%"></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="card-app">
+            <div class="card-header-app"><h2>Upcoming leave</h2></div>
+            <?php if ($upcoming): ?>
+                <ul class="list-unstyled card-body-app m-0 d-grid gap-2">
+                    <?php foreach ($upcoming as $l): ?>
+                        <li class="d-flex justify-content-between gap-2">
+                            <span><?= e(leave_types()[$l['leave_type']]) ?> · <?= e(fmt_date($l['start_date'])) ?><?= $l['end_date'] !== $l['start_date'] ? ' – ' . e(fmt_date($l['end_date'])) : '' ?></span>
+                            <?= status_badge($l['status']) ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <div class="empty-state py-4"><i class="bi bi-sun"></i>No leave planned.</div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-<?php 
-require_once "include/footer.php";
-?>
+<?php ob_start(); ?>
+<script>
+(function () {
+    var el = document.getElementById('payChart');
+    if (!el || !window.Chart) { return; }
+    var d = <?= json_encode($chart) ?>, chart;
+    function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+    function draw() {
+        if (chart) { chart.destroy(); }
+        Chart.defaults.color = css('--app-muted');
+        Chart.defaults.borderColor = css('--app-border');
+        Chart.defaults.font.family = css('--bs-body-font-family');
+        chart = new Chart(el, {
+            type: 'bar',
+            data: { labels: d.labels, datasets: [
+                { label: 'Take-home', data: d.net, backgroundColor: '#14b8a6', borderRadius: 6 },
+                { label: 'EPF 8% + APIT + other', data: d.deductions, backgroundColor: '#f59e0b', borderRadius: 6 }
+            ] },
+            options: {
+                maintainAspectRatio: false,
+                scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: function (v) { return 'Rs. ' + (v / 1000) + 'k'; } } } },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
+                    tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': Rs. ' + c.raw.toLocaleString('en-LK', { minimumFractionDigits: 2 }); } } }
+                }
+            }
+        });
+    }
+    draw();
+    document.addEventListener('themechange', draw);
+})();
+</script>
+<?php render_footer([CHART_JS], ob_get_clean()); ?>
