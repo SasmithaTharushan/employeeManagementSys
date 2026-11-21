@@ -108,6 +108,9 @@ function install_database(PDO $pdo, bool $withDemo = true): void
     foreach (schema_statements($driver) as $sql) {
         $pdo->exec($sql);
     }
+    if (function_exists('sessions_table_sql')) {
+        $pdo->exec(sessions_table_sql());
+    }
     if ($withDemo) {
         seed_demo_data($pdo);
     }

@@ -147,7 +147,7 @@ php tests/payroll_test.php
 | Backend | PHP 8 (no framework), PDO |
 | Database | MySQL / MariaDB or SQLite |
 | Frontend | Bootstrap 5.3, Bootstrap Icons, Chart.js 4, vanilla JS |
-| Hosting | Docker (Apache) on Render, or any PHP host |
+| Hosting | Docker (Apache) on Vercel with a TiDB Cloud database, or any PHP host |
 
 ---
 
@@ -157,11 +157,11 @@ php tests/payroll_test.php
 ```bash
 git clone https://github.com/SasmithaTharushan/employeeManagementSys.git
 cd employeeManagementSys
-DB_DRIVER=sqlite php -S localhost:8000
+DB_DRIVER=sqlite php -S localhost:8000 router.php
 ```
 On Windows PowerShell:
 ```powershell
-$env:DB_DRIVER="sqlite"; php -S localhost:8000
+$env:DB_DRIVER="sqlite"; php -S localhost:8000 router.php
 ```
 Open http://localhost:8000. The database and demo data are created on the first request.
 
@@ -176,6 +176,7 @@ Settings come from environment variables, or from a git-ignored `config.local.ph
 
 | Variable | Default | Purpose |
 |---|---|---|
+| `DATABASE_URL` | *(none)* | One-line MySQL connection, e.g. `mysql://user:pass@host:4000/db`. Overrides the `DB_*` values, turns on TLS and stores logins in the database |
 | `DB_DRIVER` | `mysql` | `mysql` or `sqlite` |
 | `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` | MySQL server |
 | `DB_NAME` | `employee_management` | Database name |
@@ -192,15 +193,16 @@ return ['db' => ['driver' => 'mysql', 'user' => 'root', 'pass' => 'secret']];
 
 ## 🚀 Deploy your own
 
-### Hugging Face Spaces (free, no card, auto-deploys from GitHub)
-1. On [huggingface.co](https://huggingface.co), create a **Space** with the **Docker** SDK (Blank template).
-2. Create an access token with **Write** permission.
-3. In this GitHub repo, go to **Settings → Secrets and variables → Actions** and add:
-   - a **secret** `HF_TOKEN` containing the token
-   - a **variable** `HF_SPACE` like `your-username/ceylon-hr-payroll`
-4. Push to `main` (or run the **Deploy to Hugging Face Spaces** workflow by hand).
+### Vercel + TiDB Cloud (free, no card)
+Vercel builds the root `Dockerfile` with its Container preset (beta, available on the free Hobby plan). Because Vercel instances don't keep files, the data lives in a free **TiDB Cloud** MySQL-compatible database.
 
-The workflow in `.github/workflows/deploy-huggingface.yml` builds the Space from `deploy/huggingface/`. It runs PHP's built-in server on port 7860 with SQLite and demo data, and `router.php` blocks the database file and internal folders.
+1. **Database:** sign up at [tidbcloud.com](https://tidbcloud.com), create a free cluster, click **Connect**, generate a password and copy the connection string (`mysql://…:4000/test`).
+2. **Vercel:** **Add New → Project**, import this repository, and add one environment variable:
+   `DATABASE_URL` = the connection string from step 1.
+3. Click **Deploy**. Vercel detects the `Dockerfile` and uses the **Container** preset.
+4. Open `https://your-app.vercel.app/install.php` and click **Install** to create the tables and demo data.
+
+Every push to `main` redeploys automatically. Logins are stored in the database, and the connection uses TLS.
 
 ### Free PHP hosting with MySQL (e.g. InfinityFree), no card needed
 1. Create a free hosting account and a MySQL database in the control panel.
@@ -218,9 +220,9 @@ The workflow in `.github/workflows/deploy-huggingface.yml` builds the Space from
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/SasmithaTharushan/employeeManagementSys)
 
-The `Dockerfile` runs PHP 8.3 + Apache with SQLite and demo data, so there's no database to set up. The `render.yaml` blueprint deploys it to Render's free plan in one click. Render asks for a card to verify your identity, even on the free plan. Free instances sleep when idle, and demo data resets on restart.
+Without `DATABASE_URL`, the `Dockerfile` runs PHP 8.3 + Apache with SQLite and demo data, so there's no database to set up (data resets on restart). The `render.yaml` blueprint deploys it to Render in one click. Render asks for a card to verify your identity, even on the free plan.
 
-> GitHub Pages and Vercel only host static sites and serverless functions, so they can't run this PHP + database app.
+> GitHub Pages only hosts static sites, so it can't run this PHP + database app.
 
 ---
 
@@ -234,6 +236,7 @@ The `Dockerfile` runs PHP 8.3 + Apache with SQLite and demo data, so there's no 
 │   ├── bootstrap.php        Loads config, session and helpers
 │   ├── db.php               PDO connection + query helpers
 │   ├── auth.php             Login, logout, throttling, passwords
+│   ├── session.php          Database-backed sessions (for Vercel)
 │   ├── payroll.php          EPF / ETF / APIT engine and payroll runs
 │   ├── payslip_view.php     Payslip template
 │   └── layout.php           Page shell, sidebar, login page
@@ -242,7 +245,8 @@ The `Dockerfile` runs PHP 8.3 + Apache with SQLite and demo data, so there's no 
 ├── database/setup.php       Schema for MySQL + SQLite, and demo data
 ├── assets/                  CSS and JavaScript
 ├── tests/payroll_test.php   Payroll calculation tests
-├── Dockerfile               PHP 8.3 + Apache image
+├── router.php               Blocks private files under `php -S`
+├── Dockerfile               PHP 8.3 + Apache image (Vercel, Render, …)
 └── render.yaml              Render blueprint
 ```
 

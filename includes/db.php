@@ -26,10 +26,32 @@ function db(): PDO
             install_database($pdo, true);
         }
     } else {
+        if (!empty($c['ssl'])) {
+            $ca = $c['ssl_ca'] ?: find_ca_bundle();
+            if ($ca) {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = $ca;
+                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+            }
+        }
         $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $c['host'], $c['port'], $c['name']);
         $pdo = new PDO($dsn, $c['user'], $c['pass'], $options);
     }
     return $pdo;
+}
+
+/** System CA certificates, used to verify cloud database TLS certificates. */
+function find_ca_bundle(): ?string
+{
+    foreach ([
+        '/etc/ssl/certs/ca-certificates.crt',  // Debian / Ubuntu (Docker php images)
+        '/etc/pki/tls/certs/ca-bundle.crt',    // RHEL / Amazon Linux
+        '/etc/ssl/cert.pem',                   // Alpine / macOS
+    ] as $path) {
+        if (is_readable($path)) {
+            return $path;
+        }
+    }
+    return null;
 }
 
 function q(string $sql, array $params = []): PDOStatement

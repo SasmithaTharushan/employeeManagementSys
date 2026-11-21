@@ -1,3 +1,6 @@
 .git
 config.local.php
 database/*.sqlite
+docs
+tests
+.github
