@@ -277,6 +277,8 @@ body {
 
 .landing-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 0; }
 .landing-nav .brand { color: var(--app-text); padding: 0; }
+.landing-nav .btn { white-space: nowrap; }
+@media (max-width: 700px) { .landing-nav .brand-text { display: none; } }
 .hero { padding: 4rem 0 3rem; }
 .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
 .hero h1 span { background: linear-gradient(90deg, #0f766e, #14b8a6, #d97706); -webkit-background-clip: text; background-clip: text; color: transparent; }
