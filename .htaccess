@@ -1,0 +1,6 @@
+# Don't serve config, build or docs files directly (Apache: XAMPP, shared hosting, Docker image).
+<FilesMatch "^(config\.php|config\.local\.php|router\.php|Dockerfile|render\.yaml|.*\.md|\.dockerignore|\.gitignore)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

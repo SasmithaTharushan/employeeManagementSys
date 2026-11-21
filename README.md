@@ -29,7 +29,9 @@ Most employee management systems stop at "add, edit, delete". Running payroll in
 
 ## 🔗 Live demo
 
-> 🚧 **Live link coming soon.** Until then, run it locally in under a minute with SQLite ([see below](#-run-it-locally)).
+> ### **[ceylon-hr-payroll.vercel.app](https://ceylon-hr-payroll.vercel.app)**
+>
+> Hosted on Vercel (Docker container) with a TiDB Cloud database, both on free plans. The first page load after a quiet period can take a few seconds.
 
 | Role | Email | Password |
 |---|---|---|
@@ -38,7 +40,7 @@ Most employee management systems stop at "add, edit, delete". Running payroll in
 
 Each login page also has a one-click **Use demo** button.
 
-**Things to try:** run payroll for this month → add overtime hours → *Save & recalculate* → *Finalize* → open a payslip → download the EPF/ETF CSV. Then sign in as the employee to see the same payslip.
+**Things to try:** run payroll for the next month → add overtime hours → *Save & recalculate* → *Finalize* → open a payslip → download the EPF/ETF CSV. Then sign in as the employee to see the same payslip.
 
 ---
 
