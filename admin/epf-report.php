@@ -78,7 +78,7 @@ render_header('EPF / ETF / APIT', 'admin', 'reports', 'Monthly statutory figures
         <div class="card-app mb-3">
             <div class="card-header-app"><h2>EPF and ETF contributions · <?= e(period_label($run['period'])) ?></h2></div>
             <div class="table-responsive">
-                <table class="table table-app">
+                <table class="table table-app table-dense">
                     <thead><tr><th>EPF no</th><th>Name</th><th>NIC</th><th class="num">Total earnings</th><th class="num">Employee 8%</th><th class="num">Employer 12%</th><th class="num">Total 20%</th><th class="num">ETF 3%</th></tr></thead>
                     <tbody>
                     <?php foreach ($rows as $r): ?>
@@ -111,7 +111,7 @@ render_header('EPF / ETF / APIT', 'admin', 'reports', 'Monthly statutory figures
         <div class="card-app">
             <div class="card-header-app"><h2>APIT deducted · <?= e(period_label($run['period'])) ?></h2></div>
             <div class="table-responsive">
-                <table class="table table-app">
+                <table class="table table-app table-dense">
                     <thead><tr><th>Employee no</th><th>Name</th><th>NIC</th><th class="num">Gross pay</th><th class="num">APIT</th></tr></thead>
                     <tbody>
                     <?php foreach ($rows as $r): ?>

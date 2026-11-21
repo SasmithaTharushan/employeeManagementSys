@@ -109,7 +109,7 @@ render_header(
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table table-app">
+            <table class="table table-app table-dense">
                 <thead>
                 <tr>
                     <th>Employee</th>
