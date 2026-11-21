@@ -18,7 +18,8 @@ require_once __DIR__ . '/payroll.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/layout.php';
 
-if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
+// Scripts like the cron endpoint define NO_SESSION so they don't create login sessions.
+if (PHP_SAPI !== 'cli' && !defined('NO_SESSION') && session_status() === PHP_SESSION_NONE) {
     if (config('session_driver') === 'database') {
         session_set_save_handler(new DatabaseSessionHandler(), true);
     }

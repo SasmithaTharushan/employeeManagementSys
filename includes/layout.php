@@ -181,7 +181,8 @@ function render_login(string $role, string $error, string $email): void
         </form>
         <?php if (config('demo_mode')): ?>
             <div class="demo-box">
-                <div><strong>Demo account</strong><br><code><?= e($demo[0]) ?></code> / <code><?= e($demo[1]) ?></code></div>
+                <div><strong>Demo account</strong><br><code><?= e($demo[0]) ?></code> / <code><?= e($demo[1]) ?></code>
+                    <div class="small text-body-secondary mt-1">Try anything: demo data resets every night.</div></div>
                 <button class="btn btn-outline-primary btn-sm" type="button"
                         data-demo-login data-email="<?= e($demo[0]) ?>" data-password="<?= e($demo[1]) ?>">Use demo</button>
             </div>

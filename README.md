@@ -31,7 +31,7 @@ Most employee management systems stop at "add, edit, delete". Running payroll in
 
 > ### **[ceylon-hr-payroll.vercel.app](https://ceylon-hr-payroll.vercel.app)**
 >
-> Hosted on Vercel (Docker container) with a TiDB Cloud database, both on free plans. The first page load after a quiet period can take a few seconds.
+> Hosted on Vercel (Docker container) with a TiDB Cloud database, both on free plans. **Demo data resets every night** (Vercel Cron), so feel free to try anything. The first page load after a quiet period can take a few seconds.
 
 | Role | Email | Password |
 |---|---|---|
@@ -40,7 +40,7 @@ Most employee management systems stop at "add, edit, delete". Running payroll in
 
 Each login page also has a one-click **Use demo** button.
 
-**Things to try:** run payroll for the next month → add overtime hours → *Save & recalculate* → *Finalize* → open a payslip → download the EPF/ETF CSV. Then sign in as the employee to see the same payslip.
+**Things to try:** run payroll for this month → add overtime hours → *Save & recalculate* → *Finalize* → open a payslip → download the EPF/ETF CSV. Then sign in as the employee to see the same payslip.
 
 ---
 
@@ -206,6 +206,8 @@ Vercel builds the root `Dockerfile` with its Container preset (beta, available o
 
 Every push to `main` redeploys automatically. Logins are stored in the database, and the connection uses TLS.
 
+**Nightly demo reset:** `vercel.json` schedules a Vercel Cron job that calls `/cron/reset-demo.php` every day at midnight Sri Lanka time (18:30 UTC) to restore the demo data. It only runs when `DEMO_MODE` is on and refuses to run more than once an hour. Optionally set a `CRON_SECRET` environment variable, which Vercel then sends with every cron call, so only Vercel can trigger it.
+
 ### Free PHP hosting with MySQL (e.g. InfinityFree), no card needed
 1. Create a free hosting account and a MySQL database in the control panel.
 2. Upload the app files into `htdocs` (you don't need `tests/`, `docs/`, `Dockerfile` or `render.yaml`).
@@ -244,11 +246,13 @@ Without `DATABASE_URL`, the `Dockerfile` runs PHP 8.3 + Apache with SQLite and d
 │   └── layout.php           Page shell, sidebar, login page
 ├── admin/                   Admin console (employees, leave, payroll, reports)
 ├── employee/                Employee portal (dashboard, payslips, leave, profile)
-├── database/setup.php       Schema for MySQL + SQLite, and demo data
+├── database/setup.php       Schema for MySQL + SQLite, demo data and reset
+├── cron/reset-demo.php      Nightly demo reset (called by Vercel Cron)
 ├── assets/                  CSS and JavaScript
 ├── tests/payroll_test.php   Payroll calculation tests
 ├── router.php               Blocks private files under `php -S`
 ├── Dockerfile               PHP 8.3 + Apache image (Vercel, Render, …)
+├── vercel.json              Vercel settings (Container preset + nightly cron)
 └── render.yaml              Render blueprint
 ```
 

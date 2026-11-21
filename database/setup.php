@@ -116,6 +116,20 @@ function install_database(PDO $pdo, bool $withDemo = true): void
     }
 }
 
+/**
+ * Wipe all app data and reinstall the demo data. Payroll months and leave dates
+ * are relative to today, so after a reset the current month is ready to run again.
+ * Login sessions are kept.
+ */
+function reset_demo_data(PDO $pdo): void
+{
+    // Children before parents, because of the foreign keys.
+    foreach (['payslips', 'payroll_runs', 'leaves', 'employees', 'departments', 'admins'] as $table) {
+        $pdo->exec("DROP TABLE IF EXISTS $table");
+    }
+    install_database($pdo, true);
+}
+
 function seed_demo_data(PDO $pdo): void
 {
     mt_srand(42);
